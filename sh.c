@@ -59,7 +59,7 @@ void runcmd(struct cmd *cmd)
     if (cmd == 0)
 	exit(0);
 
-    // revisar porque echo escribe las comillas
+    // revisar porque echo escribe las comillas, consultarlo
     switch (cmd->type) {
         default:
             fprintf(stderr, "runcmd desconocido\n");
@@ -74,7 +74,7 @@ void runcmd(struct cmd *cmd)
         case REDIR:
             rcmd = (struct redircmd *) cmd;
             int fd = open(rcmd->file,rcmd->mode,0777);
-            if(fd < 0){
+            if(fd < 0){ 
                 perror("Error con el open \n");
                 exit(-1);
             }
@@ -82,8 +82,6 @@ void runcmd(struct cmd *cmd)
                 perror("dup");
                 exit(1);   
             }
-            // mi error: ponia al reves los atributos de close y dup
-            // asi funciona
             close(rcmd->fd); // cerrar entrada o salida
             dup(fd); // poner el archivo abierto en la entrada o salida
             close(fd); // ya no se necesita
