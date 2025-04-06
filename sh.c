@@ -27,13 +27,11 @@ struct cmd {
     int type;			//  ' ' (exec), | (pipe), '<' or '>' for redirection
 };
 
-// estructura de exec
 struct execcmd {
     int type;			    // ' '
     char *argv[MAXARGS];	// arguments to the command to be exec-ed
 };
 
-// estructura de un redireccionamineto
 struct redircmd {
     int type;		    // < or >
     struct cmd *cmd;	// the command to be run (e.g., an execcmd)
@@ -42,14 +40,12 @@ struct redircmd {
     int fd;			    // the file descriptor number to use for the file
 };
 
-// estructura de un pipe
 struct pipecmd {
     int type;			    // |
     struct cmd *left;		// left side of pipe
     struct cmd *right;		// right side of pipe
 };
 
-// declaracion de funcion
 int fork1(void);		        // Fork but exits on failure.
 struct cmd *parsecmd(char *);   // Parse the user's command.
 
@@ -58,7 +54,7 @@ void runcmd(struct cmd *cmd)
 {
     struct execcmd *ecmd;
     struct pipecmd *pcmd;
-    // struct redircmd *rcmd;
+    struct redircmd *rcmd;
 
     if (cmd == 0)
 	exit(0);
@@ -75,31 +71,29 @@ void runcmd(struct cmd *cmd)
             execvp(ecmd->argv[0],ecmd->argv);
             break;
         case REDIR:
-            fprintf(stderr, "REDIR no implementado\n");
-        /*  rcmd = (struct redircmd *) cmd;
-            runcmd(rcmd->cmd);*/
+            rcmd = (struct redircmd *) cmd;
+            runcmd(rcmd->cmd);
             break;
         case PIPE:
+        // padre es shell 
+        // hijo(1) left | hijo (2) rigth
             pcmd = (struct pipecmd *) cmd;
             int fd[2];
-            // crea el pipe
             if ( pipe(fd)<0){
                 perror("Error al crear el pipe \n");
                 exit(-1);
             }
-            if (fork1()== 0){ // es el proceso hijo
+            if (fork1()== 0){
                 close(0); 
-                dup(fd[0]); // poner el fd[0] por entrada estandar
-                close(fd[0]);
+                dup(fd[0]);  
                 close(fd[1]);
-                runcmd(pcmd->right);// los tenia al reves
+                runcmd(pcmd->right);
             } 
-            else {
+            else if (fork1()== 0){
                 close(1);
                 dup(fd[1]);
                 close(fd[0]);
-                close(fd[1]);
-                runcmd(pcmd->left);// los tenia al reves
+                runcmd(pcmd->left);
             }
             close(fd[0]);
             close(fd[1]);
@@ -110,7 +104,6 @@ void runcmd(struct cmd *cmd)
     exit(0);
 }
 
-// lee linea de comando
 int getcmd(char *buf, int nbuf)
 {
     // originally 6.828
@@ -141,7 +134,6 @@ int main(void)
             }
             continue;
         }
-
         if (fork1() == 0) {
             runcmd(parsecmd(buf));
         }
@@ -332,7 +324,6 @@ struct cmd *parseredirs(struct cmd *cmd, char **ps, char *es)
     return cmd;
 }
 
-// 
 struct cmd *parseexec(char **ps, char *es)
 {
     char *q, *eq;
