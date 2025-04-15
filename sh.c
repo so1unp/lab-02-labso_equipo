@@ -58,60 +58,59 @@ void runcmd(struct cmd *cmd)
 
     if (cmd == 0)
 	exit(0);
-
-    // revisar porque echo escribe las comillas, consultarlo
     switch (cmd->type) {
         default:
             fprintf(stderr, "runcmd desconocido\n");
             exit(-1);
-
-        case EXEC:
+        case EXEC: // revisar lo de las comillas
             ecmd = (struct execcmd *) cmd;
             if (ecmd->argv[0] == 0)
                 exit(0);
             execvp(ecmd->argv[0],ecmd->argv);
+            perror("exec");
             break;
         case REDIR:
             rcmd = (struct redircmd *) cmd;
-            int fd = open(rcmd->file,rcmd->mode,0777);
+            int fd = open(rcmd->file,rcmd->mode,0644);
             if(fd < 0){ 
-                perror("Error con el open \n");
+                perror("Error al abrir");
                 exit(-1);
             }
-            if (dup(fd)< 0){
-                perror("dup");
-                exit(1);   
+            close(rcmd->fd); // cerrar entrada o salida estandar
+            if (dup(fd)< 0) // poner el archivo abierto en la entrada o salida
+            {
+                perror("Error en dup2");
+                close(fd);
+                exit(1);
             }
-            close(rcmd->fd); // cerrar entrada o salida
-            dup(fd); // poner el archivo abierto en la entrada o salida
-            close(fd); // ya no se necesita
+            close(fd); // ya no se necesita el archivo abierto
             runcmd(rcmd->cmd);
             break;
         case PIPE:
-        // padre es shell 
-        // hijo(1) left | hijo (2) rigth
             pcmd = (struct pipecmd *) cmd;
             int pfd[2];
             if ( pipe(pfd)<0){
-                perror("Error al crear el pipe \n");
+                perror("Error al crear el pipe");
                 exit(-1);
             }
-            if (fork1()== 0){
-                close(0); 
+            // pid izq <- fork
+            if (fork1()== 0){ // escribir en pipe
+                close(1); // cerrar salida estandar
+                dup(pfd[1]);
+                close(pfd[0]);
+                runcmd(pcmd->left);
+            } 
+            // pid izq <- fork
+            if (fork1()== 0){ // leer del pipe
+                close(0); // cerrar entrada estandar
                 dup(pfd[0]);  
                 close(pfd[1]);
                 runcmd(pcmd->right);
             }
-            else if (fork1()== 0){
-                close(1);
-                dup(pfd[1]);
-                close(pfd[0]);
-                runcmd(pcmd->left);
-            }
             close(pfd[0]);
             close(pfd[1]);
-            wait(0);
-            wait(0);
+            wait(0); // esperar proceso
+            wait(0); // esperar proceso
             break;
         }
     exit(0);
