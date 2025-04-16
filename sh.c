@@ -79,7 +79,7 @@ void runcmd(struct cmd *cmd)
             close(rcmd->fd); // cerrar entrada o salida estandar
             if (dup(fd)< 0) // poner el archivo abierto en la entrada o salida
             {
-                perror("Error en dup2");
+                perror("Error en dup");
                 close(fd);
                 exit(1);
             }
@@ -100,7 +100,7 @@ void runcmd(struct cmd *cmd)
                 close(pfd[0]);
                 runcmd(pcmd->left);
             } 
-            // pid izq <- fork
+            // pid der <- fork
             if (fork1()== 0){ // leer del pipe
                 close(0); // cerrar entrada estandar
                 dup(pfd[0]);  
